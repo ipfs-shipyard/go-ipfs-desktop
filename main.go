@@ -1,8 +1,9 @@
 package main
 
 import (
+	"encoding/base64"
+
 	"github.com/getlantern/systray"
-	"github.com/getlantern/systray/example/icon"
 )
 
 func main() {
@@ -10,7 +11,11 @@ func main() {
 }
 
 func onReady() {
-	systray.SetIcon(icon.Data)
+	icon, err := base64.StdEncoding.DecodeString(systrayIconOff)
+	if err != nil {
+		panic(err)
+	}
+	systray.SetIcon(icon)
 	systray.SetTooltip("IPFS Desktop")
 	mQuit := systray.AddMenuItem("Quit", "Stop the IPFS daemon and quit the app")
 	go func() {
