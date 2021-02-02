@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"fmt"
 	"log"
 	"os/exec"
 
@@ -11,46 +12,63 @@ import (
 var ipfsBinary string
 
 func main() {
-	var err error
-	ipfsBinary, err = exec.LookPath("ipfs")
+	ipfsBinary, err := exec.LookPath("ipfs")
 	if err != nil {
 		log.Fatalf("could not locate the ipfs binary: %v", err)
 	}
+	log.Printf("using ipfs found at %s", ipfsBinary)
 
-	systray.Run(trayReady, trayExit)
+	daemon := trayDaemon{ipfsBinary: ipfsBinary}
+	systray.Run(daemon.onReady, daemon.onExit)
 }
 
-func trayReady() {
+type trayDaemon struct {
+	ipfsBinary string
+
+	menuDaemon  *systray.MenuItem
+	menuVersion *systray.MenuItem
+	menuQuit    *systray.MenuItem
+}
+
+func (d *trayDaemon) onReady() {
 	icon, err := base64.StdEncoding.DecodeString(systrayIconOff)
 	if err != nil {
-		panic(err)
+		panic(err) // should not happen
 	}
 
 	systray.SetIcon(icon)
 	systray.SetTooltip("IPFS Desktop")
 
-	menuDaemon := systray.AddMenuItem("Start IPFS", "Start the IPFS daemon")
+	d.menuDaemon = systray.AddMenuItem("Start IPFS", "Start the IPFS daemon")
 
 	systray.AddSeparator()
 
-	menuVersion := systray.AddMenuItem("Version/bug TODO", "")
-	menuQuit := systray.AddMenuItem("Quit", "Stop the IPFS daemon and quit the app")
+	d.menuVersion = systray.AddMenuItem("Version/bug TODO", "")
+	d.menuQuit = systray.AddMenuItem("Quit", "Stop the IPFS daemon and quit the app")
 
 	go func() {
 		for {
-			select {
-			case <-menuDaemon.ClickedCh:
-				println("TODO")
-
-			case <-menuQuit.ClickedCh:
-				systray.Quit()
-
-			case <-menuVersion.ClickedCh:
-				println("TODO")
+			if err := d.handleClick(); err != nil {
+				log.Printf("error: %v", err)
 			}
 		}
 	}()
 }
 
-func trayExit() {
+func (d *trayDaemon) handleClick() error {
+	select {
+	case <-d.menuDaemon.ClickedCh:
+		return fmt.Errorf("TODO")
+
+	case <-d.menuQuit.ClickedCh:
+		systray.Quit()
+		return nil
+
+	case <-d.menuVersion.ClickedCh:
+		return fmt.Errorf("TODO")
+	}
+}
+
+func (d *trayDaemon) onExit() {
+	log.Println("exiting")
 }
