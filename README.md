@@ -1,11 +1,14 @@
-## Native IPFS Desktop
+# Experiment: IPFS Desktop without Electron
 
-This is an alternative to ipfs-desktop, showing a system tray icon to run an
-IPFS daemon. There are several advantages to this implementation:
+This repo is an experiment created during a Hack Week (2021 Q1)
+to explore if it is possible to provide most of IPFS Desktop functionality
+without dependency on the Electron/Chromium Rube Goldberg machine.
 
-* No external dependencies like Electron
-* Written in Go; can be bundled with go-ipfs in the future
-* Easy to distribute as a mostly-static binary
+Consider this experimental for now!
 
-Note that, by design, this project is not pure Go. It needs to make use of Cgo
-to interact with the system.
+## License
+
+This project is dual-licensed under Apache 2.0 and MIT terms:
+
+- Apache License, Version 2.0, ([LICENSE-APACHE](https://github.com/ipfs-shipyard/go-ipfs-desktop/blob/master/LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](https://github.com/ipfs-shipyard/go-ipfs-desktop/blob/master/LICENSE-MIT) or http://opensource.org/licenses/MIT)
