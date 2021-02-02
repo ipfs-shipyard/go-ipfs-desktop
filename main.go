@@ -30,8 +30,8 @@ type trayDaemon struct {
 	ipfsCmd    *exec.Cmd
 	webUIURL   string
 
-	menuOpenWebUI *systray.MenuItem
 	menuStartStop *systray.MenuItem
+	menuOpenWebUI *systray.MenuItem
 	menuVersion   *systray.MenuItem
 	menuQuit      *systray.MenuItem
 }
@@ -118,10 +118,9 @@ func (d *trayDaemon) startIPFS() error {
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
 		line := scanner.Text()
-		fmt.Println("got line", line, len(line))
 		webUIPrefix := "WebUI: "
 		if strings.HasPrefix(line, webUIPrefix) {
-			d.webUIURL = line[len(webUIPrefix):]
+			d.webUIURL = strings.TrimSpace(line[len(webUIPrefix):])
 		} else if strings.Contains(line, "Daemon is ready") {
 			// The daemon has started, we're done.
 			break
