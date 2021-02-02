@@ -59,6 +59,7 @@ func (d *trayDaemon) onReady() {
 }
 
 func (d *trayDaemon) onExit() {
+	d.stopIPFS()
 	log.Println("exiting")
 }
 
