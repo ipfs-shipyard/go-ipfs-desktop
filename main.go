@@ -78,7 +78,10 @@ func (d *trayDaemon) handleClick() error {
 		}
 
 	case <-d.menuOpenWebUI.ClickedCh:
-		return openBrowser(d.webUIURL)
+		if !openBrowser(d.webUIURL) {
+			return fmt.Errorf("could not open web UI with a browser")
+		}
+		return nil
 
 	case <-d.menuVersion.ClickedCh:
 		return fmt.Errorf("TODO")

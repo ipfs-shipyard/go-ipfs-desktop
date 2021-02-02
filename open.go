@@ -1,22 +1,53 @@
 package main
 
 import (
-	"fmt"
+	"os"
 	"os/exec"
 	"runtime"
+	"time"
 )
 
-// Copied from https://gist.github.com/nanmu42/4fbaf26c771da58095fa7a9f14f23d27
-func openBrowser(url string) (err error) {
-	switch runtime.GOOS {
-	case "linux":
-		err = exec.Command("xdg-open", url).Start()
-	case "windows":
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-	case "darwin":
-		err = exec.Command("open", url).Start()
-	default:
-		err = fmt.Errorf("unsupported platform")
+func browserCommands() [][]string {
+	var cmds [][]string
+	if exe := os.Getenv("BROWSER"); exe != "" {
+		cmds = append(cmds, []string{exe})
 	}
-	return
+	switch runtime.GOOS {
+	case "windows":
+		cmds = append(cmds, []string{"cmd", "/c", "start"})
+	case "darwin":
+		cmds = append(cmds, []string{"/usr/bin/open"})
+	default: // Linux, etc
+		cmds = append(cmds, []string{"xdg-open"})
+	}
+	// fallbacks
+	cmds = append(cmds,
+		[]string{"chromium"},
+		[]string{"chrome"},
+		[]string{"google-chrome"},
+		[]string{"firefox"},
+	)
+	return cmds
+}
+
+func openBrowser(url string) bool {
+	for _, args := range browserCommands() {
+		cmd := exec.Command(args[0], append(args[1:], url)...)
+		if cmd.Start() == nil && apparentSuccess(cmd) {
+			return true
+		}
+	}
+	return false
+}
+
+func apparentSuccess(cmd *exec.Cmd) bool {
+	errc := make(chan error, 1)
+	go func() { errc <- cmd.Wait() }()
+
+	select {
+	case <-time.After(2 * time.Second):
+		return true
+	case err := <-errc:
+		return err == nil
+	}
 }
