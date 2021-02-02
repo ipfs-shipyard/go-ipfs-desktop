@@ -11,8 +11,6 @@ import (
 	"github.com/getlantern/systray"
 )
 
-var ipfsBinary string
-
 func main() {
 	log.SetPrefix("[go-ipfs-desktop] ")
 
@@ -37,8 +35,7 @@ type trayDaemon struct {
 }
 
 func (d *trayDaemon) onReady() {
-	// TODO: transition the icon as we start/stop the daemon
-	systray.SetIcon(decodeAsset(systrayIconOff))
+	systray.SetIcon(systrayIconOff)
 	systray.SetTooltip("IPFS Desktop")
 
 	// This menu item is filled when we start the daemon below.
@@ -74,12 +71,12 @@ func (d *trayDaemon) handleClick() error {
 			return d.startIPFS()
 		}
 
+	case <-d.menuVersion.ClickedCh:
+		return fmt.Errorf("TODO")
+
 	case <-d.menuQuit.ClickedCh:
 		systray.Quit()
 		return nil
-
-	case <-d.menuVersion.ClickedCh:
-		return fmt.Errorf("TODO")
 	}
 }
 
@@ -126,6 +123,7 @@ func (d *trayDaemon) startIPFS() error {
 	d.menuStartStop.SetTitle("Stop IPFS")
 	d.menuStartStop.SetTooltip("Stop the IPFS daemon")
 	d.menuStartStop.Enable()
+	systray.SetIcon(systrayIconOn)
 	return nil
 }
 
@@ -144,5 +142,6 @@ func (d *trayDaemon) stopIPFS() error {
 	d.menuStartStop.SetTitle("Start IPFS")
 	d.menuStartStop.SetTooltip("Start the IPFS daemon")
 	d.menuStartStop.Enable()
+	systray.SetIcon(systrayIconOff)
 	return nil
 }
