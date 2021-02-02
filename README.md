@@ -6,6 +6,14 @@ without dependency on the Electron/Chromium Rube Goldberg machine.
 
 Consider this experimental for now!
 
+
+## Dependencies
+
+### Linux
+
+Make sure [libappindicator](https://launchpad.net/libappindicator) is present, eg. `apt-get install libappindicator3-dev`
+
+
 ## License
 
 This project is dual-licensed under Apache 2.0 and MIT terms:
