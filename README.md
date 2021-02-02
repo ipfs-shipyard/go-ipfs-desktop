@@ -1,4 +1,4 @@
-# Experiment: IPFS Desktop without Electon
+# Experiment: IPFS Desktop without Electron
 
 This repo is an experiment created during a Hack Week (2021 Q1)
 to explore if it is possible to provide most of IPFS Desktop functionality
