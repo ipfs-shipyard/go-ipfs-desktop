@@ -217,7 +217,9 @@ func (d *trayDaemon) startIPFS() error {
 
 	d.ipfsCmd = cmd
 
-	if d.webUIURL != "" {
+	if d.webUIURL == "" {
+		log.Println("ipfs daemon started, but has no web UI?")
+	} else {
 		d.menuOpenWebUI.Enable()
 	}
 
