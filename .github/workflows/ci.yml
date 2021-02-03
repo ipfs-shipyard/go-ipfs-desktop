@@ -72,6 +72,6 @@ jobs:
       - name: Attach produced packages to Github Action
         uses: actions/upload-artifact@v2
         with:
-          name: binary-${{ matrix.os }}-go-${{ matrix.go-version }}
+          name: go-ipfs-desktop_go-${{ matrix.go-version }}_${{ matrix.os }}
           path: go-ipfs-desktop*
           if-no-files-found: error
