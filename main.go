@@ -7,6 +7,7 @@ import (
 	"log"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/getlantern/systray"
 )
@@ -20,12 +21,26 @@ func main() {
 	}
 	log.Printf("using ipfs found at %s", ipfsBinary)
 
-	daemon := trayDaemon{ipfsBinary: ipfsBinary}
+	daemon := trayDaemon{
+		daemonSemaphore: make(chan struct{}, 1),
+		ipfsBinary:      ipfsBinary,
+	}
 	systray.Run(daemon.onReady, daemon.onExit)
 }
 
 type trayDaemon struct {
-	// TODO: we might need some sort of lock, since clicks are async.
+	// daemonSemaphore controls access to ipfsCmd and starting/stopping the
+	// daemon, to make sure only one goroutine does that at a time.
+	//
+	// In general, use grabDaemon and releaseDaemon instead of the semaphore
+	// directly.
+	//
+	// Even if we are careful to only call startIPFS and stopIPFS from a
+	// single goroutine, this adds a layer of safety to ensure that we never
+	// introduce memory races. Plus, we'll likely need more goroutines in
+	// the future, such as those handling ^C or other user inputs.
+	daemonSemaphore chan struct{}
+
 	ipfsBinary string
 	ipfsCmd    *exec.Cmd
 	webUIURL   string
@@ -36,7 +51,29 @@ type trayDaemon struct {
 	menuQuit      *systray.MenuItem
 }
 
+func (d *trayDaemon) grabDaemon() bool {
+	select {
+	case d.daemonSemaphore <- struct{}{}:
+		return true
+	default:
+		return false
+	}
+}
+
+func (d *trayDaemon) releaseDaemon() {
+	select {
+	case <-d.daemonSemaphore:
+	default:
+		panic("called releaseDaemon without grabDaemon?")
+	}
+}
+
 func (d *trayDaemon) onReady() {
+	if !d.grabDaemon() {
+		panic("we must grab the daemon semaphore when we start")
+	}
+	defer d.releaseDaemon()
+
 	systray.SetIcon(systrayIconOff)
 	systray.SetTooltip("IPFS Desktop")
 
@@ -64,13 +101,33 @@ func (d *trayDaemon) onReady() {
 }
 
 func (d *trayDaemon) onExit() {
-	d.stopIPFS()
-	log.Println("exiting")
+	if !d.grabDaemon() {
+		// We are starting or stopping the daemon right now.
+		// Directly wait for that to finish, up to a timeout.
+		timeout := 5 * time.Second
+		log.Printf("waiting for the daemon semaphore for up to %v...", timeout)
+
+		select {
+		case d.daemonSemaphore <- struct{}{}:
+		case <-time.After(timeout):
+			log.Printf("timed out; exiting")
+			return
+		}
+	}
+	// If the IPFS daemon is running, stop it.
+	if d.ipfsCmd != nil {
+		d.stopIPFS()
+	}
+	log.Printf("exiting")
 }
 
 func (d *trayDaemon) handleClick() error {
 	select {
 	case <-d.menuStartStop.ClickedCh:
+		if !d.grabDaemon() {
+			return fmt.Errorf("refusing to start/stop IPFS since it is already in progress")
+		}
+		defer d.releaseDaemon()
 		if d.ipfsRunning() {
 			return d.stopIPFS()
 		} else {
@@ -97,7 +154,11 @@ func (d *trayDaemon) ipfsRunning() bool {
 }
 
 func (d *trayDaemon) startIPFS() error {
-	log.Println("starting the IPFS daemon")
+	if d.ipfsCmd != nil {
+		panic("we tried to start the ipfs daemon when it's already running?")
+	}
+
+	log.Printf("starting the IPFS daemon")
 
 	d.menuStartStop.SetTitle("Starting...")
 	d.menuStartStop.SetTooltip("Starting the IPFS daemon")
@@ -133,7 +194,7 @@ func (d *trayDaemon) startIPFS() error {
 		return err
 	}
 
-	log.Println("IPFS daemon ready")
+	log.Printf("IPFS daemon ready")
 
 	d.ipfsCmd = cmd
 
@@ -149,7 +210,10 @@ func (d *trayDaemon) startIPFS() error {
 }
 
 func (d *trayDaemon) stopIPFS() error {
-	log.Println("stopping the IPFS daemon")
+	if d.ipfsCmd == nil {
+		panic("we tried to stop the ipfs daemon when it's not running?")
+	}
+	log.Printf("stopping the IPFS daemon")
 
 	d.menuStartStop.SetTitle("Stopping...")
 	d.menuStartStop.SetTooltip("Stopping the IPFS daemon")
