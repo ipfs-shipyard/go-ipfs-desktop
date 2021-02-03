@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -15,7 +17,7 @@ import (
 func main() {
 	log.SetPrefix("[go-ipfs-desktop] ")
 
-	ipfsBinary, err := exec.LookPath("ipfs")
+	ipfsBinary, err := locateIPFS()
 	if err != nil {
 		log.Fatalf("could not locate the ipfs binary: %v", err)
 	}
@@ -26,6 +28,23 @@ func main() {
 		ipfsBinary:      ipfsBinary,
 	}
 	systray.Run(daemon.onReady, daemon.onExit)
+}
+
+// locateIPFS attempts to find the "ipfs" binary. It first checks the directory
+// where go-ipfs-desktop is being run from, and then falls back to $PATH.
+func locateIPFS() (string, error) {
+	execPath, err := os.Executable()
+	if err != nil {
+		return "", nil
+	}
+	execDir := filepath.Dir(execPath)
+	for _, ext := range []string{"", ".exe"} {
+		ipfsBinary := filepath.Join(execDir, "ipfs"+ext)
+		if _, err := os.Stat(ipfsBinary); err == nil {
+			return ipfsBinary, nil
+		}
+	}
+	return exec.LookPath("ipfs")
 }
 
 type trayDaemon struct {
