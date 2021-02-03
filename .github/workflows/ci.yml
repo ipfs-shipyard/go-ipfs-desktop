@@ -63,7 +63,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Build binary
-        run: go build ./...
+        run: go build
       - name: List artifacts
         run: ls .
       # Persist produced binaries
