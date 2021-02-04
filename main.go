@@ -67,7 +67,7 @@ type trayDaemon struct {
 
 	menuStartStop *systray.MenuItem
 	menuOpenWebUI *systray.MenuItem
-	menuVersion   *systray.MenuItem
+	menuReportBug *systray.MenuItem
 	menuQuit      *systray.MenuItem
 }
 
@@ -105,7 +105,7 @@ func (d *trayDaemon) onReady() {
 	d.menuOpenWebUI = systray.AddMenuItem("Open WebUI", "Open the WebUI in the default browser")
 	d.menuOpenWebUI.Disable()
 
-	d.menuVersion = systray.AddMenuItem("Version/bug TODO", "")
+	d.menuReportBug = systray.AddMenuItem("Report a bug", "")
 	d.menuQuit = systray.AddMenuItem("Quit", "Stop the IPFS daemon and quit the app")
 
 	go func() {
@@ -160,8 +160,13 @@ func (d *trayDaemon) handleClick() error {
 		}
 		return nil
 
-	case <-d.menuVersion.ClickedCh:
-		return fmt.Errorf("TODO")
+	case <-d.menuReportBug.ClickedCh:
+		// TODO: We could pre-fill this in the future, with e.g. the
+		// version of this program as well as ipfs.
+		if !openBrowser("https://github.com/ipfs-shipyard/go-ipfs-desktop/issues/new?template=bug_report.md") {
+			return fmt.Errorf("could not open github with a browser")
+		}
+		return nil
 
 	case <-d.menuQuit.ClickedCh:
 		systray.Quit()
