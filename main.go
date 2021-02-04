@@ -62,6 +62,7 @@ type trayDaemon struct {
 
 	ipfsBinary string
 	ipfsCmd    *exec.Cmd
+	ourStop    bool // if true, we stopped the last daemon
 	webUIURL   string
 
 	menuStartStop *systray.MenuItem
@@ -176,6 +177,7 @@ func (d *trayDaemon) startIPFS() error {
 	if d.ipfsCmd != nil {
 		panic("we tried to start the ipfs daemon when it's already running?")
 	}
+	d.ourStop = false // reset it
 
 	log.Printf("starting the IPFS daemon")
 
@@ -197,6 +199,48 @@ func (d *trayDaemon) startIPFS() error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
+	ready := make(chan struct{}, 1)
+	go func() {
+		err := cmd.Wait()
+		if !d.grabDaemon() {
+			select {
+			// The daemon started, and crashed at a later point.
+			// The daemon is also being started or stopped.
+			case <-ready:
+				panic("daemon was stopped while grabbed?")
+			// The daemon exited before it was ready.
+			default:
+				if err == nil {
+					log.Printf("ipfs daemon exited without being ready, stderr below:\n%s", stderr.String())
+				} else {
+					log.Printf("ipfs daemon failed before being ready, stderr below: %v\n%s", err, stderr.String())
+				}
+			}
+			return
+		}
+		defer d.releaseDaemon()
+
+		if d.ourStop {
+			// We triggered this daemon stop, so we don't need to do
+			// anything else.
+
+			// TODO: what if we send the daemon a ^C and it crashes
+			// while shutting down?
+			return
+		}
+
+		if err == nil {
+			log.Printf("ipfs daemon exited unexpectedly, stderr below:\n%s", stderr.String())
+		} else {
+			log.Printf("ipfs daemon crashed unexpectedly, stderr below: %v\n%s", err, stderr.String())
+		}
+
+		d.menuStartStop.SetTitle("Start IPFS")
+		d.menuStartStop.SetTooltip("Start the IPFS daemon")
+		d.menuStartStop.Enable()
+		systray.SetIcon(systrayIconOff)
+		d.ipfsCmd = nil
+	}()
 
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
@@ -215,8 +259,6 @@ func (d *trayDaemon) startIPFS() error {
 
 	log.Printf("IPFS daemon ready")
 
-	d.ipfsCmd = cmd
-
 	if d.webUIURL == "" {
 		log.Println("ipfs daemon started, but has no web UI?")
 	} else {
@@ -227,6 +269,8 @@ func (d *trayDaemon) startIPFS() error {
 	d.menuStartStop.SetTooltip("Stop the IPFS daemon")
 	d.menuStartStop.Enable()
 	systray.SetIcon(systrayIconOn)
+	d.ipfsCmd = cmd
+	ready <- struct{}{}
 	return nil
 }
 
@@ -234,6 +278,7 @@ func (d *trayDaemon) stopIPFS() error {
 	if d.ipfsCmd == nil {
 		panic("we tried to stop the ipfs daemon when it's not running?")
 	}
+	d.ourStop = true
 	log.Printf("stopping the IPFS daemon")
 
 	d.menuStartStop.SetTitle("Stopping...")
