@@ -7,6 +7,17 @@ without dependency on the Electron/Chromium Rube Goldberg machine.
 Consider this experimental for now!
 
 
+![go-ipfs-desktop_v0 0 1](https://user-images.githubusercontent.com/157609/107711238-96d89480-6cc7-11eb-862f-693ae02f8013.png)
+
+## How to run this?
+
+Pre-built artifacts can be found [here](https://github.com/ipfs-shipyard/go-ipfs-desktop/releases/latest).
+
+They require `ipfs` (go-ipfs binary) to be present on `PATH` or in the same directory as `go-ipfs-desktop`.  
+Set `IPFS_PATH` to override the default repo location.
+
+This is a portable app, meaning no installation is required.
+
 ## Dependencies
 
 ### Linux
