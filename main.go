@@ -190,7 +190,7 @@ func (d *trayDaemon) startIPFS() error {
 	d.menuStartStop.SetTooltip("Starting the IPFS daemon")
 	d.menuStartStop.Disable() // while in progress
 
-	cmd := exec.Command(d.ipfsBinary, "daemon")
+	cmd := exec.Command(d.ipfsBinary, "daemon", "--migrate", "--routing", "dhtclient", "--enable-gc")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
