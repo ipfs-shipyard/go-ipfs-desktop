@@ -70,7 +70,7 @@ jobs:
       # - this is not for releases, but for quick testing during the dev
       # - action artifacts can be downloaded for 90 days, then are removed by github
       - name: Attach produced packages to Github Action
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: go-ipfs-desktop_go-${{ matrix.go-version }}_${{ matrix.os }}
           path: go-ipfs-desktop*
